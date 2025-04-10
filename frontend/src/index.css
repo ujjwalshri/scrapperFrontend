@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+/* Theme Variables */
+:root {
+  /* Light Theme - Grandfood style */
+  --light-bg-primary: #f0f9ff;
+  --light-bg-secondary: #ffffff;
+  --light-bg-tertiary: #f3f4f6;
+  --light-text-primary: #111827;
+  --light-text-secondary: #4b5563;
+  --light-accent-primary: #f97316;  /* Orange */
+  --light-accent-secondary: #ea580c; /* Dark Orange */
+  --light-accent-tertiary: #fdba74;  /* Light Orange */
+  --light-border: #e5e7eb;
+  --light-input-bg: #f9fafb;
+  --light-card-shadow: rgba(0, 0, 0, 0.1);
+
+  /* Dark Theme - Black version */
+  --dark-bg-primary: #000000;
+  --dark-bg-secondary: #111827;
+  --dark-bg-tertiary: #1f2937;
+  --dark-text-primary: #f9fafb;
+  --dark-text-secondary: #d1d5db;
+  --dark-accent-primary: #f97316;    /* Orange */
+  --dark-accent-secondary: #ea580c;  /* Dark Orange */
+  --dark-accent-tertiary: #c2410c;   /* Very Dark Orange */
+  --dark-border: #374151;
+  --dark-input-bg: #1f2937;
+  --dark-card-shadow: rgba(0, 0, 0, 0.5);
+}
+
+/* Theme Classes */
+body.dark-theme {
+  --bg-primary: var(--dark-bg-primary);
+  --bg-secondary: var(--dark-bg-secondary);
+  --bg-tertiary: var(--dark-bg-tertiary);
+  --text-primary: var(--dark-text-primary);
+  --text-secondary: var(--dark-text-secondary);
+  --accent-primary: var(--dark-accent-primary);
+  --accent-secondary: var(--dark-accent-secondary);
+  --accent-tertiary: var(--dark-accent-tertiary);
+  --border-color: var(--dark-border);
+  --input-bg: var(--dark-input-bg);
+  --card-shadow: var(--dark-card-shadow);
+  
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+body.light-theme {
+  --bg-primary: var(--light-bg-primary);
+  --bg-secondary: var(--light-bg-secondary);
+  --bg-tertiary: var(--light-bg-tertiary);
+  --text-primary: var(--light-text-primary);
+  --text-secondary: var(--light-text-secondary);
+  --accent-primary: var(--light-accent-primary);
+  --accent-secondary: var(--light-accent-secondary);
+  --accent-tertiary: var(--light-accent-tertiary);
+  --border-color: var(--light-border);
+  --input-bg: var(--light-input-bg);
+  --card-shadow: var(--light-card-shadow);
+  
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+/* Set default theme */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom Theme Classes */
+.bg-theme-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-theme-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-theme-tertiary {
+  background-color: var(--bg-tertiary);
+}
+
+.text-theme-primary {
+  color: var(--text-primary);
+}
+
+.text-theme-secondary {
+  color: var(--text-secondary);
+}
+
+.bg-accent-primary {
+  background-color: var(--accent-primary);
+}
+
+.bg-accent-secondary {
+  background-color: var(--accent-secondary);
+}
+
+.bg-accent-tertiary {
+  background-color: var(--accent-tertiary);
+}
+
+.text-accent-primary {
+  color: var(--accent-primary);
+}
+
+.border-theme {
+  border-color: var(--border-color);
+}
+
+.input-bg {
+  background-color: var(--input-bg);
+}
+
+.shadow-theme {
+  box-shadow: 0 4px 6px var(--card-shadow);
+}
+
+/* Custom Animations */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Grandfood-style decorations */
+.blob-shape {
+  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+}
+
+/* Custom shapes for background */
+.shape-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.shape-bottom svg {
+  position: relative;
+  display: block;
+  width: calc(100% + 1.3px);
+  height: 100px;
+}
+
+.shape-bottom .shape-fill {
+  fill: var(--accent-tertiary);
+}
