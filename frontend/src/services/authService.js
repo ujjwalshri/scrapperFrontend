@@ -44,8 +44,8 @@ export const authService = {
   signup: async (userData) => {
     try {
       const response = await api.post('/users/register', userData);
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
+      if (response.data.data.accessToken) {
+        localStorage.setItem('token', response.data.data.accessToken);
       }
       return response.data;
     } catch (error) {
@@ -58,6 +58,10 @@ export const authService = {
     try {
       const response = await api.post('/users/login', credentials);
       // The token will be handled by the response interceptor
+      console.log(response.data.data);
+      if(response.data.data.accessToken){
+        localStorage.setItem('token', response.data.data.accessToken);
+      }
       return response.data;
     } catch (error) {
       // Pass through the error with description
@@ -69,6 +73,7 @@ export const authService = {
     try {
       // Call the backend logout endpoint to clear cookies
       await api.post('/users/logout');
+      localStorage.removeItem('token');
     } catch (error) {
       console.error('Error during logout:', error);
     } finally {

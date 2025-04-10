@@ -21,7 +21,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Scatter } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 
 // Register Chart.js components
 ChartJS.register(
@@ -63,6 +63,7 @@ export default function Home() {
     onSuccess: (data) => {
       console.log('Search successful:', data);
       setSearchResult(data.data);
+      console.log('Search result:', data.data);
       toast.success(`Found restaurant data for ${dishSearch}`);
     },
     onError: (error) => {
@@ -74,8 +75,8 @@ export default function Home() {
   
   // Effect to prepare chart data when search results change
   useEffect(() => {
-    if (searchResult?.data?.data?.analytics) {
-      const analytics = searchResult.data.data.analytics;
+    if (searchResult?.data?.analytics) {
+      const analytics = searchResult.data.analytics;
       
       // Prepare Price vs Distance data
       if (analytics.priceVSdistance && analytics.priceVSdistance.length > 0) {
@@ -88,13 +89,24 @@ export default function Home() {
         // Log coordinates to console
         console.log('Price vs Distance Coordinates:', distanceCoords);
         
-        // Prepare chart dataset
+        // Sort by distance for line chart
+        distanceCoords.sort((a, b) => a.x - b.x);
+        
+        // Prepare chart dataset for Line chart
         setDistanceChartData({
+          labels: distanceCoords.map(item => item.x.toFixed(1)),
           datasets: [{
-            label: 'Price vs Distance',
-            data: distanceCoords,
-            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+            label: 'Price by Distance',
+            data: distanceCoords.map(item => item.y),
             borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            fill: false,
+            tension: 0.1,
+            pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
           }]
         });
       }
@@ -110,13 +122,42 @@ export default function Home() {
         // Log coordinates to console
         console.log('Price vs Rating Coordinates:', ratingCoords);
         
-        // Prepare chart dataset
+        // Sort by rating for line chart
+        ratingCoords.sort((a, b) => a.x - b.x);
+        
+        // Group by ratings and calculate average prices for each rating
+        const ratingGroups = {};
+        ratingCoords.forEach(item => {
+          const rating = item.x.toFixed(1);
+          if (!ratingGroups[rating]) {
+            ratingGroups[rating] = {
+              sum: item.y,
+              count: 1
+            };
+          } else {
+            ratingGroups[rating].sum += item.y;
+            ratingGroups[rating].count++;
+          }
+        });
+        
+        const labels = Object.keys(ratingGroups).sort((a, b) => parseFloat(a) - parseFloat(b));
+        const averagePrices = labels.map(rating => ratingGroups[rating].sum / ratingGroups[rating].count);
+        
+        // Prepare chart dataset for Line chart
         setRatingChartData({
+          labels: labels,
           datasets: [{
-            label: 'Price vs Rating',
-            data: ratingCoords,
-            backgroundColor: 'rgba(153, 102, 255, 0.6)',
+            label: 'Average Price by Rating',
+            data: averagePrices,
             borderColor: 'rgba(153, 102, 255, 1)',
+            backgroundColor: 'rgba(153, 102, 255, 0.6)',
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            fill: false,
+            tension: 0.1,
+            pointBackgroundColor: 'rgba(153, 102, 255, 1)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
           }]
         });
       }
@@ -135,27 +176,32 @@ export default function Home() {
 
   // Common chart options
   const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            return `Price: ₹${context.parsed.y}`;
+          }
+        }
+      }
+    },
     scales: {
       y: {
         title: {
           display: true,
           text: 'Price (₹)',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
         },
         ticks: {
           callback: (value) => `₹${value}`
-        }
-      }
-    },
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            return `Price: ₹${context.parsed.y}, ${context.dataset.label === 'Price vs Distance' ? 
-              `Distance: ${context.parsed.x}km` : 
-              `Rating: ${context.parsed.x}/5`}`;
-          }
         }
       }
     }
@@ -170,6 +216,10 @@ export default function Home() {
         title: {
           display: true,
           text: 'Distance (km)',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
         }
       }
     }
@@ -184,9 +234,11 @@ export default function Home() {
         title: {
           display: true,
           text: 'Rating (out of 5)',
-        },
-        min: 0,
-        max: 5
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
       }
     }
   };
@@ -602,11 +654,14 @@ export default function Home() {
                 <h3 className="text-xl font-bold text-theme-primary mb-4">Price vs Distance</h3>
                 <div className="h-80">
                   {distanceChartData && (
-                    <Scatter
+                    <Line
                       data={distanceChartData}
                       options={distanceChartOptions}
                     />
                   )}
+                  <p className="text-sm text-theme-secondary text-center mt-2">
+                    Shows how prices vary with distance from your location
+                  </p>
                 </div>
               </div>
               
@@ -615,11 +670,14 @@ export default function Home() {
                 <h3 className="text-xl font-bold text-theme-primary mb-4">Price vs Rating</h3>
                 <div className="h-80">
                   {ratingChartData && (
-                    <Scatter
+                    <Line
                       data={ratingChartData}
                       options={ratingChartOptions}
                     />
                   )}
+                  <p className="text-sm text-theme-secondary text-center mt-2">
+                    Shows average prices for each rating level
+                  </p>
                 </div>
               </div>
             </div>
