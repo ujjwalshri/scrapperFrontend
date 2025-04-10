@@ -39,7 +39,6 @@ export default function Navbar() {
             
             {/* Desktop menu */}
             <div className="hidden md:ml-8 md:flex md:space-x-6">
-              <NavLink to="/">Home</NavLink>
               <NavLink to="/create-menu">Create Menu</NavLink>
               <NavLink to="/about">About</NavLink>
               <NavLink to="/contact">Contact</NavLink>
@@ -52,15 +51,26 @@ export default function Navbar() {
               <ThemeToggle />
             </div>
             
-            {/* Sign Up Button (Desktop) */}
-            <div className="hidden md:block">
-              <motion.button
-                className="bg-accent-primary hover:bg-accent-secondary text-white px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-md"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Sign Up
-              </motion.button>
+            {/* Login/Signup Buttons (Desktop) */}
+            <div className="hidden md:flex space-x-3">
+              <Link to="/login">
+                <motion.button
+                  className="border border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white px-4 py-2 rounded-full text-sm font-medium transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Log In
+                </motion.button>
+              </Link>
+              <Link to="/signup">
+                <motion.button
+                  className="bg-accent-primary hover:bg-accent-secondary text-white px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-md"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Sign Up
+                </motion.button>
+              </Link>
             </div>
             
             {/* Mobile menu button */}
@@ -102,15 +112,26 @@ export default function Navbar() {
           <MobileNavLink to="/about" setIsOpen={setIsOpen}>About</MobileNavLink>
           <MobileNavLink to="/contact" setIsOpen={setIsOpen}>Contact</MobileNavLink>
           
-          <div className="pt-2 mt-3 border-t border-theme">
-            <motion.button
-              className="w-full text-center bg-accent-primary hover:bg-accent-secondary text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsOpen(false)}
-            >
-              Sign Up
-            </motion.button>
+          <div className="pt-2 mt-3 border-t border-theme space-y-2">
+            <Link to="/login" onClick={() => setIsOpen(false)}>
+              <motion.button
+                className="w-full text-center border border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Log In
+              </motion.button>
+            </Link>
+            
+            <Link to="/signup" onClick={() => setIsOpen(false)}>
+              <motion.button
+                className="w-full text-center bg-accent-primary hover:bg-accent-secondary text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Sign Up
+              </motion.button>
+            </Link>
           </div>
         </div>
       </motion.div>

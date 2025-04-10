@@ -1,7 +1,70 @@
-import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../components/ThemeContext';
 import FoodIcon from '../components/FoodIcon';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  RadialLinearScale,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Doughnut, Line, Bar, Radar } from 'react-chartjs-2';
+import { faker } from '@faker-js/faker';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  RadialLinearScale,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
+
+// Chart options and styling
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: {
+        font: {
+          family: "'Inter', sans-serif",
+          size: 12
+        },
+        usePointStyle: true,
+        padding: 20
+      }
+    },
+    tooltip: {
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      padding: 12,
+      titleFont: {
+        size: 14,
+        family: "'Inter', sans-serif"
+      },
+      bodyFont: {
+        size: 13,
+        family: "'Inter', sans-serif"
+      },
+      cornerRadius: 8,
+      displayColors: true
+    }
+  }
+};
 
 export default function CreateMenu() {
   const { isDarkMode } = useTheme();
@@ -12,15 +75,64 @@ export default function CreateMenu() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [saving, setSaving] = useState(false);
   const [generated, setGenerated] = useState(false);
+  const [stats, setStats] = useState({
+    totalItems: 0,
+    averagePrice: 0,
+    totalRevenue: 0,
+    categoryDistribution: {},
+    priceHistory: Array(7).fill(0).map(() => faker.number.float({ min: 10, max: 50 })),
+    metrics: {
+      variety: faker.number.float({ min: 0, max: 100 }),
+      pricing: faker.number.float({ min: 0, max: 100 }),
+      popularity: faker.number.float({ min: 0, max: 100 }),
+      profitMargin: faker.number.float({ min: 0, max: 100 }),
+      seasonality: faker.number.float({ min: 0, max: 100 })
+    }
+  });
   
   const categories = [
-    'All',
-    'Main Course',
-    'Appetizer',
-    'Dessert',
-    'Beverage',
-    'Sides'
+    { id: 'all', name: 'All Items' },
+    { id: 'main', name: 'Main Course' },
+    { id: 'appetizer', name: 'Appetizer' },
+    { id: 'dessert', name: 'Dessert' },
+    { id: 'beverage', name: 'Beverage' },
+    { id: 'sides', name: 'Sides' },
   ];
+  
+  useEffect(() => {
+    updateStats();
+  }, [menuItems]);
+  
+  const updateStats = () => {
+    const totalItems = menuItems.length;
+    const totalPrice = menuItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+    const averagePrice = totalItems ? (totalPrice / totalItems).toFixed(2) : 0;
+    const totalRevenue = totalPrice;
+
+    const distribution = menuItems.reduce((acc, item) => {
+      acc[item.category] = (acc[item.category] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Generate new metrics based on current menu items
+    const newMetrics = {
+      variety: faker.number.float({ min: 0, max: 100 }),
+      pricing: faker.number.float({ min: 0, max: 100 }),
+      popularity: faker.number.float({ min: 0, max: 100 }),
+      profitMargin: faker.number.float({ min: 0, max: 100 }),
+      seasonality: faker.number.float({ min: 0, max: 100 })
+    };
+
+    setStats(prevStats => ({
+      ...prevStats,
+      totalItems,
+      averagePrice,
+      totalRevenue,
+      categoryDistribution: distribution,
+      metrics: newMetrics,
+      priceHistory: Array(7).fill(0).map(() => faker.number.float({ min: 10, max: 50 }))
+    }));
+  };
   
   const addMenuItem = () => {
     const newId = menuItems.length > 0 ? Math.max(...menuItems.map(item => item.id)) + 1 : 1;
@@ -44,18 +156,95 @@ export default function CreateMenu() {
     ));
   };
   
-  const handleGenerateMenu = () => {
+  const handleGenerateMenu = async () => {
     setSaving(true);
     // Simulate API call
-    setTimeout(() => {
-      setSaving(false);
-      setGenerated(true);
-    }, 2000);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setGenerated(true);
+    setSaving(false);
   };
   
   const filteredItems = activeCategory === 'All' 
     ? menuItems 
     : menuItems.filter(item => item.category === activeCategory);
+  
+  // Chart data configurations
+  const categoryChartData = {
+    labels: Object.keys(stats.categoryDistribution),
+    datasets: [{
+      data: Object.values(stats.categoryDistribution),
+      backgroundColor: [
+        'rgba(255, 99, 132, 0.8)',
+        'rgba(54, 162, 235, 0.8)',
+        'rgba(255, 206, 86, 0.8)',
+        'rgba(75, 192, 192, 0.8)',
+        'rgba(153, 102, 255, 0.8)',
+        'rgba(255, 159, 64, 0.8)'
+      ],
+      borderColor: [
+        'rgba(255, 99, 132, 1)',
+        'rgba(54, 162, 235, 1)',
+        'rgba(255, 206, 86, 1)',
+        'rgba(75, 192, 192, 1)',
+        'rgba(153, 102, 255, 1)',
+        'rgba(255, 159, 64, 1)'
+      ],
+      borderWidth: 2
+    }]
+  };
+
+  const priceHistoryData = {
+    labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
+    datasets: [{
+      label: 'Average Price Trend',
+      data: stats.priceHistory,
+      fill: true,
+      backgroundColor: 'rgba(75, 192, 192, 0.2)',
+      borderColor: 'rgba(75, 192, 192, 1)',
+      tension: 0.4,
+      pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+      pointBorderColor: '#fff',
+      pointHoverBackgroundColor: '#fff',
+      pointHoverBorderColor: 'rgba(75, 192, 192, 1)'
+    }]
+  };
+
+  const metricsData = {
+    labels: ['Variety', 'Pricing', 'Popularity', 'Profit Margin', 'Seasonality'],
+    datasets: [{
+      label: 'Menu Metrics',
+      data: [
+        stats.metrics.variety,
+        stats.metrics.pricing,
+        stats.metrics.popularity,
+        stats.metrics.profitMargin,
+        stats.metrics.seasonality
+      ],
+      backgroundColor: 'rgba(255, 99, 132, 0.2)',
+      borderColor: 'rgba(255, 99, 132, 1)',
+      borderWidth: 2,
+      pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+      pointBorderColor: '#fff',
+      pointHoverBackgroundColor: '#fff',
+      pointHoverBorderColor: 'rgba(255, 99, 132, 1)'
+    }]
+  };
+
+  const costPriceData = {
+    labels: menuItems.map(item => item.name || 'Unnamed Item'),
+    datasets: [
+      {
+        label: 'Cost',
+        data: menuItems.map(item => item.cost || 0),
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+      },
+      {
+        label: 'Price',
+        data: menuItems.map(item => item.price || 0),
+        backgroundColor: 'rgba(53, 162, 235, 0.5)',
+      },
+    ],
+  };
   
   return (
     <div className="min-h-screen bg-theme-primary text-theme-primary">
@@ -130,17 +319,17 @@ export default function CreateMenu() {
           <div className="flex flex-wrap gap-2 mb-6">
             {categories.map((category) => (
               <motion.button
-                key={category}
+                key={category.id}
                 className={`px-4 py-2 rounded-md text-sm font-medium ${
-                  activeCategory === category 
+                  activeCategory === category.id 
                     ? 'bg-accent-primary text-white' 
                     : 'bg-theme-tertiary text-theme-secondary hover:bg-accent-tertiary'
                 }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setActiveCategory(category)}
+                onClick={() => setActiveCategory(category.id)}
               >
-                {category}
+                {category.name}
               </motion.button>
             ))}
           </div>
@@ -184,8 +373,8 @@ export default function CreateMenu() {
                         value={item.category}
                         onChange={(e) => updateMenuItem(item.id, 'category', e.target.value)}
                       >
-                        {categories.filter(cat => cat !== 'All').map(category => (
-                          <option key={category} value={category}>{category}</option>
+                        {categories.filter(cat => cat.id !== 'all').map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
                       </select>
                     </div>

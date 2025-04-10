@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../components/ThemeContext';
 import { Link } from 'react-router-dom';
 import AnimatedWave from '../components/AnimatedWave';
@@ -10,6 +10,9 @@ export default function Home() {
   const { isDarkMode } = useTheme();
   const [isTyping, setIsTyping] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dishSearch, setDishSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResult, setSearchResult] = useState(null);
   
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -56,6 +59,45 @@ export default function Home() {
       }
     }
   ];
+
+  // Mock API call to get dish pricing suggestions
+  const searchDishPricing = (dish) => {
+    setIsSearching(true);
+    
+    // Simulate API call delay
+    setTimeout(() => {
+      // Check if the dish matches any of our sample items (case insensitive)
+      const matchingDish = sampleMenuItems.find(
+        item => item.item.toLowerCase().includes(dish.toLowerCase())
+      );
+      
+      if (matchingDish) {
+        setSearchResult(matchingDish);
+      } else {
+        // Generate a mock result for any search
+        setSearchResult({
+          item: dish,
+          category: ["Main Course", "Appetizer", "Dessert", "Beverage"][Math.floor(Math.random() * 4)],
+          price: (Math.random() * 15 + 5).toFixed(2),
+          recommendations: {
+            competitiveness: Math.floor(Math.random() * 100),
+            recommendedPrice: (Math.random() * 18 + 7).toFixed(2),
+            profitImpact: Math.floor(Math.random() * 100),
+            analysis: `Based on market analysis, this ${dish} could be priced more optimally to increase your profits.`
+          }
+        });
+      }
+      
+      setIsSearching(false);
+    }, 1500);
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (dishSearch.trim()) {
+      searchDishPricing(dishSearch);
+    }
+  };
 
   return (
     <div ref={containerRef} className="relative bg-theme-primary text-theme-primary overflow-hidden">
@@ -133,33 +175,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.6 }}
               >
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search for menu items..."
-                    className="w-full px-5 py-3 pr-12 rounded-full bg-theme-secondary border border-theme focus:outline-none focus:ring-2 focus:ring-accent-primary text-theme-primary shadow-lg"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => setIsTyping(true)}
-                    onBlur={() => setIsTyping(false)}
-                  />
-                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                    <motion.svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      className="h-5 w-5 text-accent-primary" 
-                      fill="none" 
-                      viewBox="0 0 24 24" 
-                      stroke="currentColor"
-                      animate={{ 
-                        rotate: isTyping ? [0, 15, -15, 0] : 0,
-                        scale: isTyping ? [1, 1.2, 1] : 1
-                      }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </motion.svg>
-                  </div>
-                </div>
+                
               </motion.div>
             </div>
             
@@ -231,6 +247,187 @@ export default function Home() {
           </div>
         </div>
       </motion.section>
+
+      {/* Dish Search Section */}
+      <section className="py-20 px-4 bg-theme-primary relative overflow-hidden">
+        <div className="absolute -left-20 top-40 w-40 h-40 rounded-full bg-accent-tertiary opacity-20 blur-xl" />
+        <div className="absolute right-10 bottom-20 w-32 h-32 rounded-full bg-accent-primary opacity-10 blur-lg" />
+        
+        <div className="container mx-auto max-w-5xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-10"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Find the <span className="text-accent-primary">Perfect Price</span> for your Dish</h2>
+            <p className="text-theme-secondary max-w-2xl mx-auto">
+              Enter the name of any dish to get instant price optimization suggestions based on market data and customer preferences.
+            </p>
+          </motion.div>
+          
+          <motion.form 
+            onSubmit={handleSearch}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="max-w-3xl mx-auto mb-16"
+          >
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-grow">
+                <FoodIcon type="pizza" className="absolute left-4 top-1/2 transform -translate-y-1/2 w-6 h-6 text-accent-primary" />
+                <input
+                  type="text"
+                  placeholder="Enter a dish name (e.g., 'Margherita Pizza')"
+                  className="w-full pl-14 pr-5 py-4 rounded-lg bg-theme-secondary border border-theme focus:outline-none focus:ring-2 focus:ring-accent-primary text-theme-primary shadow-lg"
+                  value={dishSearch}
+                  onChange={(e) => setDishSearch(e.target.value)}
+                  required
+                />
+              </div>
+              <motion.button
+                type="submit"
+                className="bg-accent-primary hover:bg-accent-secondary text-white px-8 py-4 rounded-lg font-medium shadow-lg flex items-center justify-center"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                disabled={isSearching}
+              >
+                {isSearching ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    Get Price Suggestion
+                  </>
+                )}
+              </motion.button>
+            </div>
+          </motion.form>
+          
+          {searchResult && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="max-w-4xl mx-auto"
+            >
+              <div className="bg-theme-secondary p-6 md:p-8 rounded-xl shadow-theme border border-theme relative overflow-hidden">
+                <div className="absolute -top-10 -right-10 w-20 h-20 rounded-full bg-accent-tertiary opacity-10 blur-lg"></div>
+                <div className="absolute -bottom-10 -left-10 w-20 h-20 rounded-full bg-accent-tertiary opacity-10 blur-lg"></div>
+                
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-6 border-b border-theme pb-6">
+                  <div className="rounded-xl bg-accent-primary bg-opacity-20 p-4">
+                    <FoodIcon 
+                      type={
+                        searchResult.category === "Dessert" ? "dessert" : 
+                        searchResult.category === "Appetizer" ? "salad" : 
+                        searchResult.category === "Beverage" ? "drink" : "burger"
+                      } 
+                      className="w-16 h-16"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-theme-primary">{searchResult.item}</h3>
+                    <div className="flex items-center mt-1">
+                      <span className="bg-accent-primary bg-opacity-20 text-accent-primary px-3 py-1 rounded-full text-sm font-medium">
+                        {searchResult.category}
+                      </span>
+                      <span className="ml-4 text-theme-secondary">Current Price: <span className="text-accent-primary font-semibold">${searchResult.price}</span></span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-lg font-semibold text-accent-primary mb-4">Price Analysis</h4>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-theme-secondary">Market Competitiveness</span>
+                          <span className="font-medium">{searchResult.recommendations.competitiveness}%</span>
+                        </div>
+                        <div className="w-full bg-theme-tertiary rounded-full h-2">
+                          <motion.div
+                            className="bg-accent-primary h-2 rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${searchResult.recommendations.competitiveness}%` }}
+                            transition={{ duration: 1 }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-theme-secondary">Profit Impact</span>
+                          <span className="font-medium">{searchResult.recommendations.profitImpact}%</span>
+                        </div>
+                        <div className="w-full bg-theme-tertiary rounded-full h-2">
+                          <motion.div
+                            className="bg-accent-primary h-2 rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${searchResult.recommendations.profitImpact}%` }}
+                            transition={{ duration: 1, delay: 0.2 }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-lg font-semibold text-accent-primary mb-4">Recommendation</h4>
+                    <div className="bg-theme-tertiary p-4 rounded-lg mb-4">
+                      <div className="mb-2">
+                        <span className="text-theme-secondary">Recommended Price:</span>
+                        <div className="text-3xl font-bold text-accent-primary mt-1">${searchResult.recommendations.recommendedPrice}</div>
+                      </div>
+                      
+                      <div>
+                        <span className="text-theme-secondary">Potential Increase:</span>
+                        <motion.div 
+                          className="text-xl font-medium text-accent-primary mt-1"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.5, delay: 0.5 }}
+                        >
+                          +${(searchResult.recommendations.recommendedPrice - searchResult.price).toFixed(2)}
+                        </motion.div>
+                      </div>
+                    </div>
+                    <p className="text-theme-secondary text-sm">{searchResult.recommendations.analysis}</p>
+                  </div>
+                </div>
+                
+                <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+                  <motion.button
+                    className="bg-accent-primary hover:bg-accent-secondary text-white px-6 py-3 rounded-lg font-medium"
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    Apply to My Menu
+                  </motion.button>
+                  <motion.button
+                    className="border border-theme text-theme-primary hover:text-accent-primary px-6 py-3 rounded-lg font-medium"
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    View Detailed Analysis
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </section>
       
       {/* Features Section */}
       <section className="py-20 px-4 bg-theme-secondary relative">
