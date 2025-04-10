@@ -1,21 +1,52 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../components/ThemeContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AnimatedWave from '../components/AnimatedWave';
 import FoodIcon from '../components/FoodIcon';
 import PriceAnalysisCard from '../components/PriceAnalysisCard';
 import LocationSelector from '../components/LocationSelector';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useAuth } from '../context/AuthContext';
+import { scrapperService } from '../services/scrapper.service';
+import toast, { Toaster } from 'react-hot-toast';
+// Import Chart.js components
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Scatter } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export default function Home() {
   const { isDarkMode } = useTheme();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [isTyping, setIsTyping] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [dishSearch, setDishSearch] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
   const [searchResult, setSearchResult] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  
+  // Add state for chart data
+  const [distanceChartData, setDistanceChartData] = useState(null);
+  const [ratingChartData, setRatingChartData] = useState(null);
   
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -25,7 +56,141 @@ export default function Home() {
   
   const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const heroScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.9]);
+
+  // Restaurant search mutation using TanStack Query
+  const restaurantSearchMutation = useMutation({
+    mutationFn: (searchParams) => scrapperService.searchRestaurants(searchParams),
+    onSuccess: (data) => {
+      console.log('Search successful:', data);
+      setSearchResult(data.data);
+      toast.success(`Found restaurant data for ${dishSearch}`);
+    },
+    onError: (error) => {
+      console.error('Search error:', error);
+      toast.error(error.response?.data?.description || error.message || 'Error searching for restaurants');
+      setSearchResult(null);
+    }
+  });
   
+  // Effect to prepare chart data when search results change
+  useEffect(() => {
+    if (searchResult?.data?.data?.analytics) {
+      const analytics = searchResult.data.data.analytics;
+      
+      // Prepare Price vs Distance data
+      if (analytics.priceVSdistance && analytics.priceVSdistance.length > 0) {
+        // Create coordinates array for distance chart
+        const distanceCoords = analytics.priceVSdistance.map(item => ({
+          x: item.distance, 
+          y: item.price / 100 // Converting to base currency unit
+        }));
+        
+        // Log coordinates to console
+        console.log('Price vs Distance Coordinates:', distanceCoords);
+        
+        // Prepare chart dataset
+        setDistanceChartData({
+          datasets: [{
+            label: 'Price vs Distance',
+            data: distanceCoords,
+            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+          }]
+        });
+      }
+      
+      // Prepare Price vs Rating data
+      if (analytics.priceVSrating && analytics.priceVSrating.length > 0) {
+        // Create coordinates array for rating chart
+        const ratingCoords = analytics.priceVSrating.map(item => ({
+          x: item.rating,
+          y: item.price / 100 // Converting to base currency unit
+        }));
+        
+        // Log coordinates to console
+        console.log('Price vs Rating Coordinates:', ratingCoords);
+        
+        // Prepare chart dataset
+        setRatingChartData({
+          datasets: [{
+            label: 'Price vs Rating',
+            data: ratingCoords,
+            backgroundColor: 'rgba(153, 102, 255, 0.6)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+          }]
+        });
+      }
+    }
+  }, [searchResult]);
+
+  // Format currency for display
+  const formatPrice = (price) => {
+    return (price / 100).toLocaleString('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+  };
+
+  // Common chart options
+  const chartOptions = {
+    scales: {
+      y: {
+        title: {
+          display: true,
+          text: 'Price (₹)',
+        },
+        ticks: {
+          callback: (value) => `₹${value}`
+        }
+      }
+    },
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            return `Price: ₹${context.parsed.y}, ${context.dataset.label === 'Price vs Distance' ? 
+              `Distance: ${context.parsed.x}km` : 
+              `Rating: ${context.parsed.x}/5`}`;
+          }
+        }
+      }
+    }
+  };
+
+  // Distance chart specific options
+  const distanceChartOptions = {
+    ...chartOptions,
+    scales: {
+      ...chartOptions.scales,
+      x: {
+        title: {
+          display: true,
+          text: 'Distance (km)',
+        }
+      }
+    }
+  };
+
+  // Rating chart specific options
+  const ratingChartOptions = {
+    ...chartOptions,
+    scales: {
+      ...chartOptions.scales,
+      x: {
+        title: {
+          display: true,
+          text: 'Rating (out of 5)',
+        },
+        min: 0,
+        max: 5
+      }
+    }
+  };
+
   // Sample menu items with price analysis
   const sampleMenuItems = [
     {
@@ -70,47 +235,79 @@ export default function Home() {
     // location will have: name, lat, lon, type, country, city, state, postcode
   };
 
-  // Mock API call to get dish pricing suggestions
-  const searchDishPricing = (dish) => {
-    setIsSearching(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      // Check if the dish matches any of our sample items (case insensitive)
-      const matchingDish = sampleMenuItems.find(
-        item => item.item.toLowerCase().includes(dish.toLowerCase())
-      );
-      
-      if (matchingDish) {
-        setSearchResult(matchingDish);
-      } else {
-        // Generate a mock result for any search
-        setSearchResult({
-          item: dish,
-          category: ["Main Course", "Appetizer", "Dessert", "Beverage"][Math.floor(Math.random() * 4)],
-          price: (Math.random() * 15 + 5).toFixed(2),
-          recommendations: {
-            competitiveness: Math.floor(Math.random() * 100),
-            recommendedPrice: (Math.random() * 18 + 7).toFixed(2),
-            profitImpact: Math.floor(Math.random() * 100),
-            analysis: `Based on market analysis, this ${dish} could be priced more optimally to increase your profits.`
-          }
-        });
-      }
-      
-      setIsSearching(false);
-    }, 1500);
-  };
-
   const handleSearch = (e) => {
     e.preventDefault();
-    if (dishSearch.trim()) {
-      searchDishPricing(dishSearch);
+    
+    if (!dishSearch.trim()) {
+      toast.error('Please enter a dish name');
+      return;
     }
+    
+    if (!selectedLocation || !selectedLocation.lat || !selectedLocation.lon) {
+      toast.error('Please select a location');
+      return;
+    }
+    
+    // Call the mutation with search parameters
+    // Ensure values are properly formatted for URL query parameters
+    restaurantSearchMutation.mutate({
+      dishName: dishSearch.trim(),
+      latitude: parseFloat(selectedLocation.lat),
+      longitude: parseFloat(selectedLocation.lon)
+    });
   };
+
+  // Use the fallback data if the API is not ready
+  const useBackupData = (result) => {
+    if (result) return result;
+    
+    if (!dishSearch) return null;
+    
+    // Check if the dish matches any of our sample items (case insensitive)
+    const matchingDish = sampleMenuItems.find(
+      item => item.item.toLowerCase().includes(dishSearch.toLowerCase())
+    );
+    
+    if (matchingDish) {
+      return {
+        restaurants: [{
+          name: 'Sample Restaurant',
+          menuItems: [{ 
+            name: matchingDish.item,
+            price: matchingDish.price
+          }]
+        }],
+        stats: matchingDish.recommendations
+      };
+    }
+    
+    return null;
+  };
+
+  // Compute the display result (either API result or fallback)
+  const displayResult = useBackupData(searchResult);
+
+  const features = [
+    {
+      icon: '🎨',
+      title: 'Beautiful Templates',
+      description: 'Choose from dozens of professionally designed templates',
+    },
+    {
+      icon: '📱',
+      title: 'Fully Responsive',
+      description: 'Menus look great on any device, from phones to desktops',
+    },
+    {
+      icon: '🔄',
+      title: 'Easy Updates',
+      description: 'Change prices, add items, or update descriptions with ease',
+    },
+  ];
 
   return (
     <div ref={containerRef} className="relative bg-theme-primary text-theme-primary overflow-hidden">
+      <Toaster />
       {/* Hero Section */}
       <motion.section 
         className="relative min-h-screen flex items-center px-4 py-20 overflow-hidden"
@@ -251,226 +448,246 @@ export default function Home() {
         </div>
       </motion.section>
 
-      {/* Dish Search Section */}
-      <section className="py-20 px-4 bg-theme-primary relative overflow-hidden">
-        <div className="absolute -left-20 top-40 w-40 h-40 rounded-full bg-accent-tertiary opacity-20 blur-xl" />
-        <div className="absolute right-10 bottom-20 w-32 h-32 rounded-full bg-accent-primary opacity-10 blur-lg" />
-        
+      {/* Search section */}
+      <section className="py-16 px-4">
         <div className="container mx-auto max-w-5xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-10"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Find the <span className="text-accent-primary">Perfect Price</span> for your Dish</h2>
-            <p className="text-theme-secondary max-w-2xl mx-auto">
-              Enter the name of any dish to get instant price optimization suggestions based on market data and customer preferences.
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-accent-primary mb-4">Search for Dish Pricing</h2>
+            <p className="text-theme-secondary max-w-3xl mx-auto">
+              Enter a dish name and your location to find competitive pricing information from restaurants in your area.
             </p>
-          </motion.div>
-          
-          <motion.form 
-  onSubmit={handleSearch}
-  initial={{ opacity: 0, y: 20 }}
-  whileInView={{ opacity: 1, y: 0 }}
-  viewport={{ once: true }}
-  transition={{ duration: 0.6, delay: 0.2 }}
-  className="max-w-4xl mx-auto mb-20 px-4"
->
-  <div className="bg-theme-secondary/80 backdrop-blur-xl p-10 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] border border-theme transition-all">
-    
-    {/* Form Title (Optional) */}
-    <h2 className="text-2xl font-bold text-theme-primary mb-8 text-center tracking-tight">
-      🍕 Smart Dish Pricing Tool
-    </h2>
-
-    {/* Inputs */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-      
-      {/* Dish Name Input */}
-      <div className="relative">
-        <label className="block text-sm font-semibold text-theme-primary mb-2">
-          Dish Name
-        </label>
-        <div className="relative">
-          <FoodIcon 
-            type="pizza" 
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent-primary"
-          />
-          <input
-            type="text"
-            placeholder="e.g., Margherita Pizza"
-            className="w-full pl-12 pr-4 py-3 rounded-xl bg-theme-primary/90 border border-theme focus:outline-none focus:ring-2 focus:ring-accent-primary text-theme-primary placeholder:text-gray-400 shadow-sm transition-all"
-            value={dishSearch}
-            onChange={(e) => setDishSearch(e.target.value)}
-            required
-          />
-        </div>
-      </div>
-
-      {/* Location Selector */}
-      <div>
-        <label className="block text-sm font-semibold text-theme-primary mb-2">
-          Location
-        </label>
-        <div className="relative">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-primary">
-            📍
           </div>
-          <div className="pl-8">
-            <LocationSelector onLocationSelect={handleLocationSelect} />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Submit Button */}
-    <div className="flex justify-center">
-      <motion.button
-        type="submit"
-        className="bg-accent-primary hover:bg-accent-secondary text-white px-8 py-3 rounded-full font-semibold shadow-md flex items-center justify-center gap-2 min-w-[240px] text-base transition-all duration-300"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.97 }}
-        disabled={isSearching}
-      >
-        {isSearching ? (
-          <>
-            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4zm2 5.29A7.96 7.96 0 014 12H0c0 3.04 1.14 5.82 3 7.94l3-2.65z" />
-            </svg>
-            Analyzing...
-          </>
-        ) : (
-          <>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 10-14 0 7 7 0 0014 0z" />
-            </svg>
-            Get Price Suggestion
-          </>
-        )}
-      </motion.button>
-    </div>
-  </div>
-</motion.form>
-
           
-          {searchResult && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="max-w-4xl mx-auto"
-            >
-              <div className="bg-theme-secondary p-6 md:p-8 rounded-xl shadow-theme border border-theme relative overflow-hidden">
-                <div className="absolute -top-10 -right-10 w-20 h-20 rounded-full bg-accent-tertiary opacity-10 blur-lg"></div>
-                <div className="absolute -bottom-10 -left-10 w-20 h-20 rounded-full bg-accent-tertiary opacity-10 blur-lg"></div>
-                
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-6 border-b border-theme pb-6">
-                  <div className="rounded-xl bg-accent-primary bg-opacity-20 p-4">
-                    <FoodIcon 
-                      type={
-                        searchResult.category === "Dessert" ? "dessert" : 
-                        searchResult.category === "Appetizer" ? "salad" : 
-                        searchResult.category === "Beverage" ? "drink" : "burger"
-                      } 
-                      className="w-16 h-16"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-theme-primary">{searchResult.item}</h3>
-                    <div className="flex items-center mt-1">
-                      <span className="bg-accent-primary bg-opacity-20 text-accent-primary px-3 py-1 rounded-full text-sm font-medium">
-                        {searchResult.category}
-                      </span>
-                      <span className="ml-4 text-theme-secondary">Current Price: <span className="text-accent-primary font-semibold">${searchResult.price}</span></span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="text-lg font-semibold text-accent-primary mb-4">Price Analysis</h4>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-theme-secondary">Market Competitiveness</span>
-                          <span className="font-medium">{searchResult.recommendations.competitiveness}%</span>
-                        </div>
-                        <div className="w-full bg-theme-tertiary rounded-full h-2">
-                          <motion.div
-                            className="bg-accent-primary h-2 rounded-full"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${searchResult.recommendations.competitiveness}%` }}
-                            transition={{ duration: 1 }}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-theme-secondary">Profit Impact</span>
-                          <span className="font-medium">{searchResult.recommendations.profitImpact}%</span>
-                        </div>
-                        <div className="w-full bg-theme-tertiary rounded-full h-2">
-                          <motion.div
-                            className="bg-accent-primary h-2 rounded-full"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${searchResult.recommendations.profitImpact}%` }}
-                            transition={{ duration: 1, delay: 0.2 }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="text-lg font-semibold text-accent-primary mb-4">Recommendation</h4>
-                    <div className="bg-theme-tertiary p-4 rounded-lg mb-4">
-                      <div className="mb-2">
-                        <span className="text-theme-secondary">Recommended Price:</span>
-                        <div className="text-3xl font-bold text-accent-primary mt-1">${searchResult.recommendations.recommendedPrice}</div>
-                      </div>
-                      
-                      <div>
-                        <span className="text-theme-secondary">Potential Increase:</span>
-                        <motion.div 
-                          className="text-xl font-medium text-accent-primary mt-1"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.5, delay: 0.5 }}
-                        >
-                          +${(searchResult.recommendations.recommendedPrice - searchResult.price).toFixed(2)}
-                        </motion.div>
-                      </div>
-                    </div>
-                    <p className="text-theme-secondary text-sm">{searchResult.recommendations.analysis}</p>
-                  </div>
-                </div>
-                
-                <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-                  <motion.button
-                    className="bg-accent-primary hover:bg-accent-secondary text-white px-6 py-3 rounded-lg font-medium"
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    Apply to My Menu
-                  </motion.button>
-                  <motion.button
-                    className="border border-theme text-theme-primary hover:text-accent-primary px-6 py-3 rounded-lg font-medium"
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    View Detailed Analysis
-                  </motion.button>
-                </div>
+          <div className="bg-theme-secondary shadow-theme rounded-xl p-6 border border-theme">
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <label htmlFor="dish-search" className="block text-theme-primary font-medium mb-2">Dish Name</label>
+                <input
+                  type="text"
+                  id="dish-search"
+                  value={dishSearch}
+                  onChange={(e) => setDishSearch(e.target.value)}
+                  placeholder="e.g. Burger, Pizza, Pasta..."
+                  className="w-full px-4 py-3 rounded-lg bg-theme-primary text-theme-primary border border-theme focus:outline-none focus:ring-2 focus:ring-accent-primary"
+                />
               </div>
-            </motion.div>
-          )}
+              
+              <div>
+                <label className="block text-theme-primary font-medium mb-2">Location</label>
+                <LocationSelector onLocationSelect={handleLocationSelect} className="w-full" />
+              </div>
+            </div>
+            
+            <div className="flex justify-center">
+              <motion.button
+                onClick={handleSearch}
+                disabled={restaurantSearchMutation.isPending}
+                className="bg-accent-primary hover:bg-accent-secondary text-white px-8 py-3 rounded-full text-lg font-medium shadow-lg disabled:opacity-70 flex items-center"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {restaurantSearchMutation.isPending ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Searching...
+                  </>
+                ) : (
+                  'Search Restaurants'
+                )}
+              </motion.button>
+            </div>
+          </div>
         </div>
       </section>
-      
+
+      {/* Search results - Only displayed after fetch */}
+      {searchResult && searchResult.data && searchResult.data.analytics && (
+        <section className="py-16 px-4 bg-theme-tertiary bg-opacity-20">
+          <div className="container mx-auto max-w-6xl">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-accent-primary mb-4">Results for "{dishSearch}"</h2>
+              <p className="text-theme-secondary max-w-3xl mx-auto">
+                Here's what we found about pricing for this dish in your area.
+              </p>
+            </div>
+            
+            {/* Top Stats Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+              {/* Min Price Card */}
+              <div className="bg-theme-secondary shadow-theme rounded-xl p-6 border border-theme">
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-600 dark:text-green-300" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-theme-primary mb-1">Lowest Price</h3>
+                  <p className="text-3xl font-bold text-accent-primary mb-2">
+                    {formatPrice(searchResult.data.analytics.min.price)}
+                  </p>
+                  <p className="text-theme-secondary text-sm text-center">
+                    {searchResult.data.analytics.min.name} • {searchResult.data.analytics.min.locality}
+                  </p>
+                  <div className="flex items-center mt-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span className="ml-1 text-theme-primary">{searchResult.data.analytics.min.avgRating}</span>
+                    <span className="ml-2 text-theme-secondary">•</span>
+                    <span className="ml-2 text-theme-secondary">{searchResult.data.analytics.min.deliveryTime} mins</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Average Price Card */}
+              <div className="bg-theme-secondary shadow-theme rounded-xl p-6 border border-theme">
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600 dark:text-blue-300" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-theme-primary mb-1">Average Price</h3>
+                  <p className="text-3xl font-bold text-accent-primary mb-2">
+                    {formatPrice(searchResult.data.analytics.avgPrice)}
+                  </p>
+                  <p className="text-theme-secondary text-sm text-center">
+                    Based on nearby restaurants
+                  </p>
+                  <div className="w-full bg-theme-tertiary rounded-full h-2 mt-3">
+                    <div 
+                      className="bg-accent-primary h-full rounded-full" 
+                      style={{ 
+                        width: `${(searchResult.data.analytics.avgPrice / searchResult.data.analytics.max.price) * 100}%` 
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Max Price Card */}
+              <div className="bg-theme-secondary shadow-theme rounded-xl p-6 border border-theme">
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 bg-purple-100 dark:bg-purple-800 rounded-full flex items-center justify-center mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-purple-600 dark:text-purple-300" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-theme-primary mb-1">Highest Price</h3>
+                  <p className="text-3xl font-bold text-accent-primary mb-2">
+                    {formatPrice(searchResult.data.analytics.max.price)}
+                  </p>
+                  <p className="text-theme-secondary text-sm text-center">
+                    {searchResult.data.analytics.max.name} • {searchResult.data.analytics.max.locality}
+                  </p>
+                  <div className="flex items-center mt-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span className="ml-1 text-theme-primary">{searchResult.data.analytics.max.avgRating}</span>
+                    <span className="ml-2 text-theme-secondary">•</span>
+                    <span className="ml-2 text-theme-secondary">{searchResult.data.analytics.max.deliveryTime} mins</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Price vs Charts Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+              {/* Price vs Distance Chart */}
+              <div className="bg-theme-secondary shadow-theme rounded-xl p-6 border border-theme">
+                <h3 className="text-xl font-bold text-theme-primary mb-4">Price vs Distance</h3>
+                <div className="h-80">
+                  {distanceChartData && (
+                    <Scatter
+                      data={distanceChartData}
+                      options={distanceChartOptions}
+                    />
+                  )}
+                </div>
+              </div>
+              
+              {/* Price vs Rating Chart */}
+              <div className="bg-theme-secondary shadow-theme rounded-xl p-6 border border-theme">
+                <h3 className="text-xl font-bold text-theme-primary mb-4">Price vs Rating</h3>
+                <div className="h-80">
+                  {ratingChartData && (
+                    <Scatter
+                      data={ratingChartData}
+                      options={ratingChartOptions}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Restaurant Cards */}
+            <div>
+              <h3 className="text-2xl font-bold text-theme-primary mb-6">Top Restaurants</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {searchResult.data.cards && searchResult.data.cards.map((restaurant, index) => (
+                  <motion.div
+                    key={index}
+                    className="bg-theme-secondary shadow-theme rounded-xl overflow-hidden border border-theme"
+                    whileHover={{ y: -5, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="h-48 overflow-hidden relative">
+                      <img 
+                        src={restaurant.imageId} 
+                        alt={restaurant.name} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/300x200?text=Restaurant+Image';
+                        }}
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
+                        <div className="flex items-center">
+                          <span className="bg-white text-black px-2 py-1 rounded text-sm font-bold">
+                            {formatPrice(restaurant.price)}
+                          </span>
+                          {restaurant.ratings && (
+                            <div className="ml-auto bg-green-600 text-white px-2 py-1 rounded flex items-center">
+                              <span className="text-sm font-bold">{restaurant.ratings.rating}</span>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h4 className="font-bold text-theme-primary text-lg truncate">{restaurant.name}</h4>
+                      
+                      {restaurant.ratings && (
+                        <div className="mt-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-theme-secondary text-sm">Delivery Time</span>
+                            <span className="text-theme-primary font-medium">{restaurant.ratings.deliveryTime} mins</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-theme-secondary text-sm">Total Ratings</span>
+                            <span className="text-theme-primary font-medium">{restaurant.ratings.totalRatings}</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <button className="w-full mt-4 py-2 bg-accent-primary hover:bg-accent-secondary text-white rounded-lg font-medium transition-colors">
+                        View Details
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Features Section */}
       <section className="py-20 px-4 bg-theme-secondary relative">
         <div className="container mx-auto max-w-7xl">

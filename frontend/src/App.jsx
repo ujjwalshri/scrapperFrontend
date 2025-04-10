@@ -1,9 +1,12 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { ThemeProvider } from './components/ThemeContext'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { AuthProvider } from './context/AuthContext'
 
 // Components
 import Navbar from './components/Navbar'
+import ProtectedRoute from './components/ProtectedRoute'
 
 // Pages
 import Home from './pages/Home'
@@ -12,8 +15,22 @@ import Contact from './pages/Contact'
 import CreateMenu from './pages/CreateMenu'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import Dashboard from './pages/Dashboard'
+
+const queryClient = new QueryClient()
 
 function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </QueryClientProvider>
+  )
+}
+
+// Separate component for routes that need auth context
+function AppRoutes() {
   return (
     <ThemeProvider>
       <Router>
@@ -22,19 +39,40 @@ function App() {
           <main>
             <AnimatePresence mode="wait">
               <Routes>
+                {/* Public routes */}
                 <Route path="/" element={<Home />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
-                <Route path="/create-menu" element={<CreateMenu />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                
+                {/* Protected routes */}
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/create-menu" 
+                  element={
+                    <ProtectedRoute>
+                      <CreateMenu />
+                    </ProtectedRoute>
+                  } 
+                />
+
+                {/* Catch all route - redirect to home */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </AnimatePresence>
           </main>
         </div>
       </Router>
     </ThemeProvider>
-  )
+  );
 }
 
 export default App

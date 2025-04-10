@@ -1,18 +1,55 @@
 import { motion } from 'framer-motion';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../components/ThemeContext';
 import FoodIcon from '../components/FoodIcon';
+import { useMutation } from '@tanstack/react-query';
+import { authService } from '../services/authService';
+import toast, { Toaster } from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
   const [formState, setFormState] = useState({
     email: '',
     password: ''
   });
   const [errors, setErrors] = useState({});
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Redirect to home page if user is already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
+  const loginMutation = useMutation({
+    mutationFn: (credentials) => authService.login(credentials),
+    onSuccess: (data) => {
+      login(data.token); // Call the login function from AuthContext
+      toast.success('Successfully logged in!');
+      navigate('/'); // Redirect to home page instead of dashboard
+    },
+    onError: (error) => {
+      // Extract the description from the error response
+      const errorMessage = error.response?.data?.description || error.message || 'An error occurred during login';
+      toast.error(errorMessage, {
+        duration: 4000,
+        position: 'top-center',
+        style: {
+          background: isDarkMode ? '#333' : '#fff',
+          color: isDarkMode ? '#fff' : '#333',
+        },
+      });
+      setErrors(prev => ({
+        ...prev,
+        submit: errorMessage
+      }));
+    }
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,19 +69,18 @@ export default function Login() {
 
   const validateForm = () => {
     const newErrors = {};
+    const emailRegex = /^([A-Z0-9_+-]+\.?)*[A-Z0-9_+-]@([A-Z0-9][A-Z0-9-]*\.)+[A-Z]{2,}$/i;
     
     // Email validation
     if (!formState.email) {
       newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formState.email)) {
+    } else if (!emailRegex.test(formState.email)) {
       newErrors.email = 'Email is invalid';
     }
     
     // Password validation
     if (!formState.password) {
       newErrors.password = 'Password is required';
-    } else if (formState.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
     }
     
     setErrors(newErrors);
@@ -55,13 +91,7 @@ export default function Login() {
     e.preventDefault();
     
     if (validateForm()) {
-      setIsLoggingIn(true);
-      
-      // Simulate login
-      setTimeout(() => {
-        setIsLoggingIn(false);
-        // Navigate to dashboard or home page after login
-      }, 1500);
+      loginMutation.mutate(formState);
     }
   };
 
@@ -71,6 +101,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-theme-primary text-theme-primary flex items-center justify-center py-12 px-4 relative overflow-hidden">
+      <Toaster />
       {/* Background decorations */}
       <div className="absolute -right-20 top-40 w-64 h-64 rounded-full bg-accent-tertiary opacity-20 blur-xl" />
       <div className="absolute left-10 top-20 w-32 h-32 rounded-full bg-accent-primary opacity-10 blur-lg" />
@@ -174,15 +205,21 @@ export default function Login() {
                   <p className="text-red-500 text-sm mt-1">{errors.password}</p>
                 )}
               </div>
+
+              {errors.submit && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {errors.submit}
+                </div>
+              )}
               
               <motion.button
                 type="submit"
                 className="w-full bg-accent-primary hover:bg-accent-secondary text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-70"
-                disabled={isLoggingIn}
+                disabled={loginMutation.isPending}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {isLoggingIn ? (
+                {loginMutation.isPending ? (
                   <div className="flex items-center justify-center">
                     <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

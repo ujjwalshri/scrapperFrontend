@@ -256,9 +256,9 @@ export default function CreateMenu() {
   return (
     <div className="min-h-screen bg-theme-primary text-theme-primary">
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Side - Menu Creation */}
-          <div className="bg-theme-secondary rounded-xl p-6 shadow-lg">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Side - Menu Creation - Takes up 1 column */}
+          <div className="lg:col-span-1 bg-theme-secondary rounded-xl p-6 shadow-lg">
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-6">Create Your Menu</h2>
               {/* Menu Name Form */}
@@ -282,7 +282,7 @@ export default function CreateMenu() {
                     layout
                     className="bg-theme-primary p-4 rounded-lg shadow-sm"
                   >
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-1">Item Name</label>
                         <input
@@ -327,7 +327,7 @@ export default function CreateMenu() {
                           placeholder="Cost"
                         />
                       </div>
-                      <div className="col-span-2">
+                      <div>
                         <label className="block text-sm font-medium mb-1">Description</label>
                         <textarea
                           value={item.description}
@@ -367,8 +367,8 @@ export default function CreateMenu() {
             </div>
           </div>
 
-          {/* Right Side - Stats and Analysis */}
-          <div className="bg-theme-secondary rounded-xl p-6 shadow-lg">
+          {/* Right Side - Stats and Analysis - Takes up 2 columns */}
+          <div className="lg:col-span-2 bg-theme-secondary rounded-xl p-6 shadow-lg">
             <h2 className="text-2xl font-bold mb-6">Menu Analytics</h2>
             
             {/* Quick Stats */}
@@ -383,28 +383,28 @@ export default function CreateMenu() {
               </div>
             </div>
 
-            {/* Charts */}
-            <div className="space-y-8">
+            {/* Charts Grid */}
+            <div className="grid grid-cols-2 gap-8">
               {/* Category Distribution */}
-              <div className="h-64">
+              <div className="h-72">
                 <h3 className="text-lg font-medium mb-4">Category Distribution</h3>
                 <Doughnut data={categoryChartData} options={chartOptions} />
               </div>
 
               {/* Price History */}
-              <div className="h-64">
+              <div className="h-72">
                 <h3 className="text-lg font-medium mb-4">Price Trend</h3>
                 <Line data={priceHistoryData} options={chartOptions} />
               </div>
 
               {/* Menu Metrics */}
-              <div className="h-64">
+              <div className="h-72">
                 <h3 className="text-lg font-medium mb-4">Menu Performance Metrics</h3>
                 <Radar data={metricsData} options={chartOptions} />
               </div>
 
               {/* Cost vs Price Analysis */}
-              <div className="h-64">
+              <div className="h-72">
                 <h3 className="text-lg font-medium mb-4">Cost vs Price Analysis</h3>
                 <Bar data={costPriceData} options={chartOptions} />
               </div>
