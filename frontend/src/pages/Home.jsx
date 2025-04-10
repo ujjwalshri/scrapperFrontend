@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import AnimatedWave from '../components/AnimatedWave';
 import FoodIcon from '../components/FoodIcon';
 import PriceAnalysisCard from '../components/PriceAnalysisCard';
+import LocationSelector from '../components/LocationSelector';
+import { useQuery } from '@tanstack/react-query';
 
 export default function Home() {
   const { isDarkMode } = useTheme();
@@ -13,6 +15,7 @@ export default function Home() {
   const [dishSearch, setDishSearch] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResult, setSearchResult] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -59,6 +62,13 @@ export default function Home() {
       }
     }
   ];
+
+  const handleLocationSelect = (location) => {
+    setSelectedLocation(location);
+    console.log('Selected location:', location);
+    // You can use the location data here for your application logic
+    // location will have: name, lat, lon, type, country, city, state, postcode
+  };
 
   // Mock API call to get dish pricing suggestions
   const searchDishPricing = (dish) => {
@@ -169,14 +179,7 @@ export default function Home() {
                 </motion.button>
               </motion.div>
               
-              <motion.div
-                className="relative max-w-md"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.6 }}
-              >
-                
-              </motion.div>
+             
             </div>
             
             <div className="order-1 md:order-2 flex justify-center">
@@ -268,51 +271,90 @@ export default function Home() {
           </motion.div>
           
           <motion.form 
-            onSubmit={handleSearch}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="max-w-3xl mx-auto mb-16"
-          >
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-grow">
-                <FoodIcon type="pizza" className="absolute left-4 top-1/2 transform -translate-y-1/2 w-6 h-6 text-accent-primary" />
-                <input
-                  type="text"
-                  placeholder="Enter a dish name (e.g., 'Margherita Pizza')"
-                  className="w-full pl-14 pr-5 py-4 rounded-lg bg-theme-secondary border border-theme focus:outline-none focus:ring-2 focus:ring-accent-primary text-theme-primary shadow-lg"
-                  value={dishSearch}
-                  onChange={(e) => setDishSearch(e.target.value)}
-                  required
-                />
-              </div>
-              <motion.button
-                type="submit"
-                className="bg-accent-primary hover:bg-accent-secondary text-white px-8 py-4 rounded-lg font-medium shadow-lg flex items-center justify-center"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                disabled={isSearching}
-              >
-                {isSearching ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    Get Price Suggestion
-                  </>
-                )}
-              </motion.button>
-            </div>
-          </motion.form>
+  onSubmit={handleSearch}
+  initial={{ opacity: 0, y: 20 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true }}
+  transition={{ duration: 0.6, delay: 0.2 }}
+  className="max-w-4xl mx-auto mb-20 px-4"
+>
+  <div className="bg-theme-secondary/80 backdrop-blur-xl p-10 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] border border-theme transition-all">
+    
+    {/* Form Title (Optional) */}
+    <h2 className="text-2xl font-bold text-theme-primary mb-8 text-center tracking-tight">
+      🍕 Smart Dish Pricing Tool
+    </h2>
+
+    {/* Inputs */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+      
+      {/* Dish Name Input */}
+      <div className="relative">
+        <label className="block text-sm font-semibold text-theme-primary mb-2">
+          Dish Name
+        </label>
+        <div className="relative">
+          <FoodIcon 
+            type="pizza" 
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent-primary"
+          />
+          <input
+            type="text"
+            placeholder="e.g., Margherita Pizza"
+            className="w-full pl-12 pr-4 py-3 rounded-xl bg-theme-primary/90 border border-theme focus:outline-none focus:ring-2 focus:ring-accent-primary text-theme-primary placeholder:text-gray-400 shadow-sm transition-all"
+            value={dishSearch}
+            onChange={(e) => setDishSearch(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+
+      {/* Location Selector */}
+      <div>
+        <label className="block text-sm font-semibold text-theme-primary mb-2">
+          Location
+        </label>
+        <div className="relative">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-accent-primary">
+            📍
+          </div>
+          <div className="pl-8">
+            <LocationSelector onLocationSelect={handleLocationSelect} />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Submit Button */}
+    <div className="flex justify-center">
+      <motion.button
+        type="submit"
+        className="bg-accent-primary hover:bg-accent-secondary text-white px-8 py-3 rounded-full font-semibold shadow-md flex items-center justify-center gap-2 min-w-[240px] text-base transition-all duration-300"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.97 }}
+        disabled={isSearching}
+      >
+        {isSearching ? (
+          <>
+            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4zm2 5.29A7.96 7.96 0 014 12H0c0 3.04 1.14 5.82 3 7.94l3-2.65z" />
+            </svg>
+            Analyzing...
+          </>
+        ) : (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 10-14 0 7 7 0 0014 0z" />
+            </svg>
+            Get Price Suggestion
+          </>
+        )}
+      </motion.button>
+    </div>
+  </div>
+</motion.form>
+
           
           {searchResult && (
             <motion.div

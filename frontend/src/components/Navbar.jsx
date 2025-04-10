@@ -3,10 +3,18 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from './ThemeContext';
+import LocationSelector from './LocationSelector';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const { isDarkMode } = useTheme();
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  
+  const handleLocationSelect = (location) => {
+    setSelectedLocation(location);
+    // You can store this in a global state management solution if needed
+    console.log('Selected location:', location);
+  };
   
   return (
     <nav className="bg-theme-secondary border-b border-theme text-theme-primary shadow-theme sticky top-0 z-50">
@@ -45,7 +53,8 @@ export default function Navbar() {
             </div>
           </div>
           
-          <div className="flex items-center">
+          <div className="flex items-center space-x-4">
+            
             {/* Theme toggle */}
             <div className="mr-4">
               <ThemeToggle />
@@ -107,6 +116,11 @@ export default function Navbar() {
         transition={{ duration: 0.3 }}
       >
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-theme-secondary">
+          {/* Location Selector for Mobile */}
+          <div className="px-3 py-2">
+            <LocationSelector onLocationSelect={handleLocationSelect} />
+          </div>
+          
           <MobileNavLink to="/" setIsOpen={setIsOpen}>Home</MobileNavLink>
           <MobileNavLink to="/create-menu" setIsOpen={setIsOpen}>Create Menu</MobileNavLink>
           <MobileNavLink to="/about" setIsOpen={setIsOpen}>About</MobileNavLink>
