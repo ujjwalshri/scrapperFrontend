@@ -49,11 +49,7 @@ export default function About() {
           >
             <h2 className="text-2xl font-semibold text-accent-primary mb-4">Our Mission</h2>
             <p className="text-theme-secondary">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam sit amet justo ut quam 
-              faucibus fermentum vel nec nibh. Sed venenatis justo a nisi efficitur bibendum. 
-              Vestibulum sodales nunc vitae lorem lobortis, vel eleifend justo finibus. 
-              Cras sodales, nisl a sodales sollicitudin, tellus risus rhoncus tortor, ac faucibus 
-              felis nibh nec justo.
+            At SmartPrice, we’re transforming the way restaurants design their menus by bringing real-time market intelligence to the table. Our platform analyzes nearby restaurant pricing to help you make smarter, data-driven decisions. Whether you're launching a new dish or updating your pricing strategy, SmartMenu gives you instant insights into local trends, helping you stay competitive, maximize profitability, and better serve your customers. It’s like having a pricing strategist in your pocket — simple, smart, and always up-to-date.
             </p>
           </motion.div>
 
@@ -64,19 +60,20 @@ export default function About() {
             <h2 className="text-2xl font-semibold text-accent-primary mb-4">Our Team</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <TeamMember 
-                name="John Doe"
-                role="CEO"
-                image="https://via.placeholder.com/150"
+                name="Ujjwal Shrivastava"
+                role="Developer"
               />
               <TeamMember 
-                name="Jane Smith"
-                role="CTO"
-                image="https://via.placeholder.com/150"
+                name="Tushar Sharma"
+                role="Developer"
               />
               <TeamMember 
-                name="Alex Johnson"
-                role="Designer"
-                image="https://via.placeholder.com/150"
+                name="Akash"
+                role="Developer"
+              />
+              <TeamMember 
+                name="Rohan jha"
+                role="Developer"
               />
             </div>
           </motion.div>

@@ -378,11 +378,11 @@ export default function Home() {
         <div className="hidden md:block absolute top-1/3 right-1/4 animate-float">
           <FoodIcon type="salad" className="w-16 h-16" delay={0.8} />
         </div>
-        <div className="hidden md:block absolute top-40 left-20 animate-float">
+        <div className="hidden md:block absolute top-10 left-20 animate-float">
           <FoodIcon type="fries" className="w-14 h-14" delay={1.1} />
         </div>
         
-        <div className="container mx-auto max-w-7xl relative z-10">
+        <div className="container mx-auto px-6 max-w-7xl relative z-10">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div className="order-2 md:order-1">
               <motion.h1 
@@ -391,7 +391,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
               >
-                <span className="text-accent-primary">Fresh</span> from the kitchen to your <span className="text-accent-primary">menu</span> with smart pricing
+                <span className="text-accent-primary">Your Menu,</span> Optimized. <span className="text-accent-primary">Fresh </span>Smart Prices
               </motion.h1>
               
               <motion.p 
@@ -409,7 +409,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
               >
-                <Link to="/create-menu">
+                <Link to="/new-menu">
                   <motion.button
                     className="bg-accent-primary hover:bg-accent-secondary text-white px-8 py-3 rounded-full text-lg font-medium shadow-lg"
                     whileHover={{ scale: 1.05 }}
@@ -421,6 +421,7 @@ export default function Home() {
                 
                 <motion.button
                   className="border-2 border-accent-primary text-accent-primary hover:bg-accent-primary hover:text-white px-8 py-3 rounded-full text-lg font-medium transition-colors"
+                  onClick={() => window.location.href = '/about'}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -488,8 +489,6 @@ export default function Home() {
                   
                   <motion.button
                     className="w-full bg-accent-primary hover:bg-accent-secondary text-white rounded-lg py-3 font-medium shadow-md"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                   >
                     Generate Optimized Menu
                   </motion.button>
@@ -616,6 +615,7 @@ export default function Home() {
                         width: `${(searchResult.data.analytics.avgPrice / searchResult.data.analytics.max.price) * 100}%` 
                       }}
                     ></div>
+                    <p className="text-theme-secondary text-sm text-center">average price compared to the highest price</p>
                   </div>
                 </div>
               </div>
@@ -652,7 +652,7 @@ export default function Home() {
               {/* Price vs Distance Chart */}
               <div className="bg-theme-secondary shadow-theme rounded-xl p-6 border border-theme">
                 <h3 className="text-xl font-bold text-theme-primary mb-4">Price vs Distance</h3>
-                <div className="h-80">
+                <div className="h-80 pb-4">
                   {distanceChartData && (
                     <Line
                       data={distanceChartData}
@@ -668,7 +668,7 @@ export default function Home() {
               {/* Price vs Rating Chart */}
               <div className="bg-theme-secondary shadow-theme rounded-xl p-6 border border-theme">
                 <h3 className="text-xl font-bold text-theme-primary mb-4">Price vs Rating</h3>
-                <div className="h-80">
+                <div className="h-80 pb-4">
                   {ratingChartData && (
                     <Line
                       data={ratingChartData}
@@ -723,20 +723,12 @@ export default function Home() {
                       
                       {restaurant.ratings && (
                         <div className="mt-2">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-theme-secondary text-sm">Delivery Time</span>
-                            <span className="text-theme-primary font-medium">{restaurant.ratings.deliveryTime} mins</span>
-                          </div>
                           <div className="flex items-center justify-between">
                             <span className="text-theme-secondary text-sm">Total Ratings</span>
-                            <span className="text-theme-primary font-medium">{restaurant.ratings.totalRatings}</span>
+                            <span className="text-theme-primary font-medium">{restaurant.ratings.ratingCount}</span>
                           </div>
                         </div>
                       )}
-                      
-                      <button className="w-full mt-4 py-2 bg-accent-primary hover:bg-accent-secondary text-white rounded-lg font-medium transition-colors">
-                        View Details
-                      </button>
                     </div>
                   </motion.div>
                 ))}
@@ -746,54 +738,7 @@ export default function Home() {
         </section>
       )}
 
-      {/* Features Section */}
-      <section className="py-20 px-4 bg-theme-secondary relative">
-        <div className="container mx-auto max-w-7xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Smart Price <span className="text-accent-primary">Analysis</span></h2>
-            <p className="text-theme-secondary max-w-2xl mx-auto">
-              Our intelligent price optimization engine analyzes market data to suggest the perfect price point for each menu item, maximizing your profits while staying competitive.
-            </p>
-          </motion.div>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            {sampleMenuItems.map((item, index) => (
-              <PriceAnalysisCard 
-                key={item.item}
-                item={item.item}
-                category={item.category}
-                price={item.price}
-                recommendations={item.recommendations}
-                delay={0.2 * index}
-              />
-            ))}
-          </div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="mt-12 text-center"
-          >
-            <Link to="/create-menu">
-              <motion.button
-                className="bg-accent-primary hover:bg-accent-secondary text-white px-6 py-3 rounded-full text-lg font-medium shadow-lg"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Create Your Menu Now
-              </motion.button>
-            </Link>
-          </motion.div>
-        </div>
-      </section>
+  
       
       {/* Testimonials Section */}
       <section className="py-20 px-4 bg-theme-primary">

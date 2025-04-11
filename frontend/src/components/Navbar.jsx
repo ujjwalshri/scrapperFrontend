@@ -68,7 +68,7 @@ export default function Navbar() {
             
             {/* Desktop menu */}
             <div className="hidden md:ml-8 md:flex md:space-x-6">
-              <NavLink to="/create-menu">Create Menu</NavLink>
+              <NavLink to="/new-menu">Create Menu</NavLink>
               {isAuthenticated && <NavLink to="/dashboard">Dashboard</NavLink>}
               <NavLink to="/about">About</NavLink>
               <NavLink to="/contact">Contact</NavLink>
@@ -191,7 +191,7 @@ export default function Navbar() {
           </div>
           
           <MobileNavLink to="/" setIsOpen={setIsOpen}>Home</MobileNavLink>
-          <MobileNavLink to="/create-menu" setIsOpen={setIsOpen}>Create Menu</MobileNavLink>
+          <MobileNavLink to="/new-menu" setIsOpen={setIsOpen}>Create Menu</MobileNavLink>
           {isAuthenticated && <MobileNavLink to="/dashboard" setIsOpen={setIsOpen}>Dashboard</MobileNavLink>}
           <MobileNavLink to="/about" setIsOpen={setIsOpen}>About</MobileNavLink>
           <MobileNavLink to="/contact" setIsOpen={setIsOpen}>Contact</MobileNavLink>

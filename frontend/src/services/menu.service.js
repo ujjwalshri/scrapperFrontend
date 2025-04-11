@@ -79,5 +79,25 @@ export const menuService = {
     } catch (error) {
       console.error('Error fetching menus:', error);
     }
+  },
+  deleteMenuItem: async (menuId, itemId) => {
+    try {
+      const response = await api.delete(`/menus/${menuId}/items/${itemId}`);
+      console.log(response);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting menu item:', error);
+      throw error;
+    }
+  },
+  generateReport: async (menuId) => {
+    try {
+      const response = await api.post(`/analysis/menu/${menuId}`);
+      console.log(response);
+      return response.data;
+    } catch (error) {
+      console.error('Error generating report:', error);
+      throw error;
+    }
   }
 }; 

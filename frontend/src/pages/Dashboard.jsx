@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../components/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { menuService } from '../services/menu.service';
 
 export default function Dashboard() {
@@ -12,6 +12,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedMenuId, setExpandedMenuId] = useState(null);
+  const [buttonCooldowns, setButtonCooldowns] = useState({});
+  const cooldownTimersRef = useRef({});
 
   useEffect(() => {
     const fetchMenus = async () => {
@@ -41,22 +43,8 @@ export default function Dashboard() {
       title: 'Create Menu',
       description: 'Design and customize a new menu',
       icon: '📝',
-      path: '/create-menu',
+      path: '/new-menu',
       color: 'bg-green-100 dark:bg-green-800'
-    },
-    {
-      title: 'My Menus',
-      description: 'View and edit your saved menus',
-      icon: '📋',
-      path: '/my-menus',
-      color: 'bg-blue-100 dark:bg-blue-800'
-    },
-    {
-      title: 'Settings',
-      description: 'Update your account preferences',
-      icon: '⚙️',
-      path: '/settings',
-      color: 'bg-purple-100 dark:bg-purple-800'
     }
   ];
 
@@ -99,6 +87,30 @@ export default function Dashboard() {
     }
   };
 
+  // Handle report generation with cooldown
+  const handleGenerateReport = (menuId) => {
+    // Skip if already in cooldown
+    if (buttonCooldowns[menuId]) return;
+    
+    // Call the service
+    menuService.generateReport(menuId);
+    
+    // Set cooldown for this menu
+    setButtonCooldowns(prev => ({...prev, [menuId]: true}));
+    
+    // Start a timer to reset the cooldown after 60 seconds
+    cooldownTimersRef.current[menuId] = setTimeout(() => {
+      setButtonCooldowns(prev => ({...prev, [menuId]: false}));
+    }, 60000); // 1 minute cooldown
+  };
+  
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(cooldownTimersRef.current).forEach(timer => clearTimeout(timer));
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-theme-primary text-theme-primary pt-8 pb-12 px-4">
       <div className="max-w-6xl mx-auto">
@@ -111,7 +123,7 @@ export default function Dashboard() {
         >
           <h1 className="text-3xl font-bold text-accent-primary mb-2">Welcome to your Dashboard</h1>
           <p className="text-theme-secondary max-w-3xl">
-            Manage your menus, update settings, and access all your MenuMaker features from this central hub.
+            Manage your menus and access all your MenuMaker features from this central hub.
           </p>
         </motion.div>
 
@@ -147,7 +159,7 @@ export default function Dashboard() {
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-semibold text-theme-primary">Your Menus</h2>
-            <Link to="/create-menu">
+            <Link to="/new-menu">
               <button className="bg-accent-primary hover:bg-accent-secondary text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
                 Create New
               </button>
@@ -231,9 +243,17 @@ export default function Dashboard() {
                         <Link to={`/menu/${menu._id}`} className="text-accent-primary hover:text-accent-secondary text-sm font-medium mr-4 transition-colors">
                           View
                         </Link>
-                        <Link to={`/edit-menu/${menu._id}`} className="text-accent-primary hover:text-accent-secondary text-sm font-medium transition-colors">
-                          Edit
-                        </Link>
+                        <button
+                          onClick={() => handleGenerateReport(menu._id)}
+                          disabled={buttonCooldowns[menu._id]}
+                          className={`text-sm font-medium mr-4 transition-colors ${
+                            buttonCooldowns[menu._id] 
+                              ? 'text-gray-400 cursor-not-allowed' 
+                              : 'text-accent-primary hover:text-accent-secondary cursor-pointer'
+                          }`}
+                        >
+                          {buttonCooldowns[menu._id] ? 'Processing...' : 'Get Reports'}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -277,7 +297,7 @@ export default function Dashboard() {
                         </div>
                       ) : (
                         <div className="py-4 text-center text-theme-secondary text-sm italic">
-                          This menu has no items yet. <Link to={`/edit-menu/${menu._id}`} className="text-accent-primary font-medium">Add some!</Link>
+                          This menu has no items yet. <Link to={`/menu/${menu._id}`} className="text-accent-primary font-medium">Add some!</Link>
                         </div>
                       )}
                     </motion.div>
@@ -300,7 +320,7 @@ export default function Dashboard() {
               <h2 className="text-2xl font-bold mb-2">Ready to create your next menu?</h2>
               <p className="mb-4 md:mb-0 opacity-90">Design beautiful custom menus with our easy-to-use editor.</p>
             </div>
-            <Link to="/create-menu">
+            <Link to="/new-menu">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

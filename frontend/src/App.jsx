@@ -12,10 +12,11 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import About from './pages/About'
 import Contact from './pages/Contact'
-import CreateMenu from './pages/CreateMenu'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
+import NewMenuPage from './pages/NewMenuPage'
+import MenuPage from './pages/MenuPage'
 
 const queryClient = new QueryClient()
 
@@ -55,11 +56,23 @@ function AppRoutes() {
                     </ProtectedRoute>
                   } 
                 />
+                
+                {/* New menu creation route */}
                 <Route 
-                  path="/create-menu" 
+                  path="/new-menu" 
                   element={
                     <ProtectedRoute>
-                      <CreateMenu />
+                      <NewMenuPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                {/* Menu detail route */}
+                <Route 
+                  path="/menu/:id" 
+                  element={
+                    <ProtectedRoute>
+                      <MenuPage />
                     </ProtectedRoute>
                   } 
                 />
