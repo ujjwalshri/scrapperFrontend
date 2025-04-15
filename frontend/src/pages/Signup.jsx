@@ -22,7 +22,7 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Redirect to home page if user is already logged in
+
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/');
